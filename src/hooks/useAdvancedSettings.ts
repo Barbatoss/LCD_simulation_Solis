@@ -11,12 +11,19 @@ export interface AdvancedSettingsState {
   modeSelect: string;
   exportPowerSet: number;
   softBackflowPower: number;
+  currentMenu: 'MAIN' | 'GRID' | 'EPM' | 'MODE_SELECT' | 'METER_SELECT' | 'EXPORT_LIMIT';
+  meterType: '1phase' | '3phase';
+  selectedMeter: string;
+  meterOptions: {
+    '1phase': string[];
+    '3phase': string[];
+  };
 }
 
 export function useAdvancedSettings() {
   const [state, setState] = useState<AdvancedSettingsState>({
     selectedItem: 'Enter Password',
-    items: ['Enter Password', 'Grid Mode', 'Mode Select', 'Export Power Set', 'Soft Hard Lmt Set'],
+    items: ['Grid ON/OFF', 'Internal EPM Set'],
     exportLimit: 2.5,
     passwordDigits: [0, 0, 0, 0],
     currentDigitIndex: 0,
@@ -24,32 +31,35 @@ export function useAdvancedSettings() {
     gridMode: 'ON',
     modeSelect: 'Standard',
     exportPowerSet: 0,
-    softBackflowPower: 0
+    softBackflowPower: 0,
+    currentMenu: 'MAIN',
+    meterType: '1phase',
+    selectedMeter: '',
+    meterOptions: {
+      '1phase': ['ACR10R16DTE', 'SDM120CTM'],
+      '3phase': ['ACR10R-D16TE4', 'DTSD1352', 'SDM630MCT']
+    }
   });
+
+  const handleEnterPassword = (digits: number[]) => {
+    if (digits[0] === 0 && digits[1] === 0 && digits[2] === 1 && digits[3] === 0) {
+      setState(prev => ({
+        ...prev,
+        isPasswordEntered: true,
+        currentMenu: 'MAIN',
+        selectedItem: 'Grid ON/OFF'
+      }));
+      return true;
+    }
+    return false;
+  };
 
   const handleUp = () => {
     if (!state.isPasswordEntered) {
       setState(prev => {
         const newDigits = [...prev.passwordDigits];
         newDigits[prev.currentDigitIndex] = 1;
-        
-        // Move to next digit automatically
         const newIndex = prev.currentDigitIndex + 1;
-        
-        // Check if password is correct (0010)
-        if (newIndex === 4 && 
-            newDigits[0] === 0 && 
-            newDigits[1] === 0 && 
-            newDigits[2] === 1 && 
-            newDigits[3] === 0) {
-          return {
-            ...prev,
-            passwordDigits: newDigits,
-            isPasswordEntered: true,
-            selectedItem: 'Grid Mode'
-          };
-        }
-        
         return {
           ...prev,
           passwordDigits: newDigits,
@@ -59,34 +69,43 @@ export function useAdvancedSettings() {
       return;
     }
 
-    // Handle different menu items
-    switch (state.selectedItem) {
-      case 'Grid Mode':
+    switch (state.currentMenu) {
+      case 'MAIN':
+        setState(prev => ({
+          ...prev,
+          selectedItem: prev.selectedItem === 'Grid ON/OFF' ? 'Internal EPM Set' : 'Grid ON/OFF'
+        }));
+        break;
+      case 'GRID':
         setState(prev => ({
           ...prev,
           gridMode: prev.gridMode === 'ON' ? 'OFF' : 'ON'
         }));
         break;
-      case 'Export Power Set':
+      case 'EPM':
         setState(prev => ({
           ...prev,
-          exportPowerSet: Math.min(10, prev.exportPowerSet + 0.1)
+          selectedItem: prev.selectedItem === 'Mode Select' ? 'Soft Hard Lmt Set' : 'Mode Select'
         }));
         break;
-      case 'Soft Hard Lmt Set':
+      case 'MODE_SELECT':
         setState(prev => ({
           ...prev,
-          softBackflowPower: Math.min(10, prev.softBackflowPower + 0.1)
+          modeSelect: 'Meter'
         }));
         break;
-      default:
-        // Navigate menu items
-        const currentIndex = state.items.indexOf(state.selectedItem);
-        const nextIndex = (currentIndex - 1 + state.items.length) % state.items.length;
+      case 'METER_SELECT':
         setState(prev => ({
           ...prev,
-          selectedItem: state.items[nextIndex]
+          meterType: prev.meterType === '1phase' ? '3phase' : '1phase'
         }));
+        break;
+      case 'EXPORT_LIMIT':
+        setState(prev => ({
+          ...prev,
+          exportLimit: Math.min(10, prev.exportLimit + 0.1)
+        }));
+        break;
     }
   };
 
@@ -95,10 +114,7 @@ export function useAdvancedSettings() {
       setState(prev => {
         const newDigits = [...prev.passwordDigits];
         newDigits[prev.currentDigitIndex] = 0;
-        
-        // Move to next digit automatically
         const newIndex = prev.currentDigitIndex + 1;
-        
         return {
           ...prev,
           passwordDigits: newDigits,
@@ -108,58 +124,111 @@ export function useAdvancedSettings() {
       return;
     }
 
-    // Handle different menu items
-    switch (state.selectedItem) {
-      case 'Grid Mode':
+    switch (state.currentMenu) {
+      case 'MAIN':
+        setState(prev => ({
+          ...prev,
+          selectedItem: prev.selectedItem === 'Grid ON/OFF' ? 'Internal EPM Set' : 'Grid ON/OFF'
+        }));
+        break;
+      case 'GRID':
         setState(prev => ({
           ...prev,
           gridMode: prev.gridMode === 'ON' ? 'OFF' : 'ON'
         }));
         break;
-      case 'Export Power Set':
+      case 'EPM':
         setState(prev => ({
           ...prev,
-          exportPowerSet: Math.max(0, prev.exportPowerSet - 0.1)
+          selectedItem: prev.selectedItem === 'Mode Select' ? 'Soft Hard Lmt Set' : 'Mode Select'
         }));
         break;
-      case 'Soft Hard Lmt Set':
+      case 'MODE_SELECT':
         setState(prev => ({
           ...prev,
-          softBackflowPower: Math.max(0, prev.softBackflowPower - 0.1)
+          modeSelect: 'Standard'
         }));
         break;
-      default:
-        // Navigate menu items
-        const currentIndex = state.items.indexOf(state.selectedItem);
-        const nextIndex = (currentIndex + 1) % state.items.length;
+      case 'METER_SELECT':
         setState(prev => ({
           ...prev,
-          selectedItem: state.items[nextIndex]
+          meterType: prev.meterType === '1phase' ? '3phase' : '1phase'
         }));
+        break;
+      case 'EXPORT_LIMIT':
+        setState(prev => ({
+          ...prev,
+          exportLimit: Math.max(0, prev.exportLimit - 0.1)
+        }));
+        break;
     }
   };
 
-  const adjustExportLimit = (increment: boolean) => {
-    setState(prev => ({
-      ...prev,
-      exportLimit: Math.max(0, prev.exportLimit + (increment ? 0.1 : -0.1))
-    }));
+  const handleEnter = () => {
+    if (!state.isPasswordEntered) {
+      const success = handleEnterPassword(state.passwordDigits);
+      if (!success) {
+        setState(prev => ({
+          ...prev,
+          passwordDigits: [0, 0, 0, 0],
+          currentDigitIndex: 0
+        }));
+      }
+      return;
+    }
+
+    switch (state.currentMenu) {
+      case 'MAIN':
+        if (state.selectedItem === 'Grid ON/OFF') {
+          setState(prev => ({
+            ...prev,
+            currentMenu: 'GRID'
+          }));
+        } else {
+          setState(prev => ({
+            ...prev,
+            currentMenu: 'EPM',
+            selectedItem: 'Mode Select'
+          }));
+        }
+        break;
+      case 'EPM':
+        if (state.selectedItem === 'Mode Select') {
+          setState(prev => ({
+            ...prev,
+            currentMenu: 'MODE_SELECT'
+          }));
+        } else {
+          setState(prev => ({
+            ...prev,
+            currentMenu: 'EXPORT_LIMIT'
+          }));
+        }
+        break;
+    }
   };
 
   const getValue = () => {
     if (!state.isPasswordEntered) {
-      return `Password: ${state.passwordDigits.join('')}`;
+      const digits = state.passwordDigits.map((digit, index) => 
+        index === state.currentDigitIndex ? `[${digit}]` : digit
+      ).join('');
+      return `Password: ${digits}`;
     }
 
-    switch (state.selectedItem) {
-      case 'Grid Mode':
+    switch (state.currentMenu) {
+      case 'MAIN':
+        return state.selectedItem;
+      case 'GRID':
         return `Grid: ${state.gridMode}`;
-      case 'Mode Select':
-        return state.modeSelect;
-      case 'Export Power Set':
-        return `${state.exportPowerSet.toFixed(1)}KW`;
-      case 'Soft Hard Lmt Set':
-        return `${state.softBackflowPower.toFixed(1)}KW`;
+      case 'EPM':
+        return state.selectedItem;
+      case 'MODE_SELECT':
+        return `Mode: ${state.modeSelect}`;
+      case 'METER_SELECT':
+        return `Meter Type: ${state.meterType}`;
+      case 'EXPORT_LIMIT':
+        return `${state.exportLimit.toFixed(1)}KW`;
       default:
         return state.selectedItem;
     }
@@ -171,7 +240,8 @@ export function useAdvancedSettings() {
       passwordDigits: [0, 0, 0, 0],
       currentDigitIndex: 0,
       isPasswordEntered: false,
-      selectedItem: 'Enter Password'
+      selectedItem: 'Enter Password',
+      currentMenu: 'MAIN'
     }));
   };
 
@@ -179,7 +249,7 @@ export function useAdvancedSettings() {
     state,
     handleUp,
     handleDown,
-    adjustExportLimit,
+    handleEnter,
     getValue,
     resetPassword
   };

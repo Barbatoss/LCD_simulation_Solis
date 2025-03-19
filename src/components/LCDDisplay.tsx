@@ -4,12 +4,14 @@ import { useSettings } from '../hooks/useSettings';
 import { useAdvancedInfo } from '../hooks/useAdvancedInfo';
 import { useAdvancedSettings } from '../hooks/useAdvancedSettings';
 import logo from '../logo.png';
+
 type MenuType = 'START' | 'STATUS' | 'MAIN' | 'INFORMATION' | 'SETTINGS' | 'ADVANCED_INFO' | 'ADVANCED_SETTINGS' | 'EXPORT_LIMIT';
 const mainMenuOptions: MenuType[] = ['INFORMATION', 'SETTINGS', 'ADVANCED_INFO', 'ADVANCED_SETTINGS'];
 
 export default function LCDDisplay() {
   const [selectedMainOption, setSelectedMainOption] = useState<MenuType>('INFORMATION');
   const [previousMenu, setPreviousMenu] = useState<MenuType>('MAIN');
+  const [activeButton, setActiveButton] = useState<string | null>(null);
   
   const [lcdState, setLcdState] = useState<{
     currentMenu: MenuType;
@@ -73,118 +75,117 @@ export default function LCDDisplay() {
     }
   }, [lcdState.currentMenu]);
 
+  const handleButtonPress = (button: string, action: () => void) => {
+    setActiveButton(button);
+    action();
+    setTimeout(() => setActiveButton(null), 100);
+  };
+
   const handleUp = () => {
-    switch (lcdState.currentMenu) {
-      case 'MAIN':
-        setSelectedMainOption(prev => {
-          const currentIndex = mainMenuOptions.indexOf(prev);
-          return currentIndex > 0 ? mainMenuOptions[currentIndex - 1] : prev;
-        });
-        break;
-      case 'START':
-      case 'STATUS':
-        setLcdState(prev => ({
-          ...prev,
-          currentMenu: prev.currentMenu === 'START' ? 'STATUS' : 'START',
-          autoScroll: false
-        }));
-        break;
-      case 'INFORMATION':
-        information.handleUp();
-        break;
-      case 'SETTINGS':
-        settings.handleUp();
-        break;
-      case 'ADVANCED_INFO':
-        advancedInfo.handleUp();
-        break;
-      case 'ADVANCED_SETTINGS':
-        advancedSettings.handleUp();
-        break;
-      case 'EXPORT_LIMIT':
-        advancedSettings.adjustExportLimit(true);
-        break;
-    }
+    handleButtonPress('up', () => {
+      switch (lcdState.currentMenu) {
+        case 'MAIN':
+          setSelectedMainOption(prev => {
+            const currentIndex = mainMenuOptions.indexOf(prev);
+            return currentIndex > 0 ? mainMenuOptions[currentIndex - 1] : prev;
+          });
+          break;
+        case 'START':
+        case 'STATUS':
+          setLcdState(prev => ({
+            ...prev,
+            currentMenu: prev.currentMenu === 'START' ? 'STATUS' : 'START',
+            autoScroll: false
+          }));
+          break;
+        case 'INFORMATION':
+          information.handleUp();
+          break;
+        case 'SETTINGS':
+          settings.handleUp();
+          break;
+        case 'ADVANCED_INFO':
+          advancedInfo.handleUp();
+          break;
+        case 'ADVANCED_SETTINGS':
+          advancedSettings.handleUp();
+          break;
+      }
+    });
   };
 
   const handleDown = () => {
-    switch (lcdState.currentMenu) {
-      case 'MAIN':
-        setSelectedMainOption(prev => {
-          const currentIndex = mainMenuOptions.indexOf(prev);
-          return currentIndex < mainMenuOptions.length - 1 ? mainMenuOptions[currentIndex + 1] : prev;
-        });
-        break;
-      case 'START':
-      case 'STATUS':
-        setLcdState(prev => ({
-          ...prev,
-          currentMenu: prev.currentMenu === 'START' ? 'STATUS' : 'START',
-          autoScroll: false
-        }));
-        break;
-      case 'INFORMATION':
-        information.handleDown();
-        break;
-      case 'SETTINGS':
-        settings.handleDown();
-        break;
-      case 'ADVANCED_INFO':
-        advancedInfo.handleDown();
-        break;
-      case 'ADVANCED_SETTINGS':
-        advancedSettings.handleDown();
-        break;
-      case 'EXPORT_LIMIT':
-        advancedSettings.adjustExportLimit(false);
-        break;
-    }
+    handleButtonPress('down', () => {
+      switch (lcdState.currentMenu) {
+        case 'MAIN':
+          setSelectedMainOption(prev => {
+            const currentIndex = mainMenuOptions.indexOf(prev);
+            return currentIndex < mainMenuOptions.length - 1 ? mainMenuOptions[currentIndex + 1] : prev;
+          });
+          break;
+        case 'START':
+        case 'STATUS':
+          setLcdState(prev => ({
+            ...prev,
+            currentMenu: prev.currentMenu === 'START' ? 'STATUS' : 'START',
+            autoScroll: false
+          }));
+          break;
+        case 'INFORMATION':
+          information.handleDown();
+          break;
+        case 'SETTINGS':
+          settings.handleDown();
+          break;
+        case 'ADVANCED_INFO':
+          advancedInfo.handleDown();
+          break;
+        case 'ADVANCED_SETTINGS':
+          advancedSettings.handleDown();
+          break;
+      }
+    });
   };
 
   const handleEnter = () => {
-    if (lcdState.currentMenu === 'START' || lcdState.currentMenu === 'STATUS') {
-      setPreviousMenu(lcdState.currentMenu);
-      setLcdState(prev => ({
-        ...prev,
-        currentMenu: 'MAIN',
-        autoScroll: false
-      }));
-    } else if (lcdState.currentMenu === 'MAIN') {
-      setPreviousMenu('MAIN');
-      setLcdState(prev => ({
-        ...prev,
-        currentMenu: selectedMainOption
-      }));
-    } else if (lcdState.currentMenu === 'ADVANCED_SETTINGS' && advancedSettings.state.selectedItem === 'Soft Hard Lmt Set') {
-      setPreviousMenu('ADVANCED_SETTINGS');
-      setLcdState(prev => ({
-        ...prev,
-        currentMenu: 'EXPORT_LIMIT'
-      }));
-    }
+    handleButtonPress('enter', () => {
+      if (lcdState.currentMenu === 'START' || lcdState.currentMenu === 'STATUS') {
+        setPreviousMenu(lcdState.currentMenu);
+        setLcdState(prev => ({
+          ...prev,
+          currentMenu: 'MAIN',
+          autoScroll: false
+        }));
+      } else if (lcdState.currentMenu === 'MAIN') {
+        setPreviousMenu('MAIN');
+        setLcdState(prev => ({
+          ...prev,
+          currentMenu: selectedMainOption
+        }));
+      } else if (lcdState.currentMenu === 'ADVANCED_SETTINGS') {
+        advancedSettings.handleEnter();
+      }
+    });
   };
 
   const handleEsc = () => {
-    if (lcdState.currentMenu === 'EXPORT_LIMIT') {
-      setLcdState(prev => ({
-        ...prev,
-        currentMenu: 'ADVANCED_SETTINGS'
-      }));
-    } else if (lcdState.currentMenu === 'MAIN') {
-      setLcdState(prev => ({
-        ...prev,
-        currentMenu: previousMenu,
-        autoScroll: true
-      }));
-    } else if (lcdState.currentMenu !== 'START' && lcdState.currentMenu !== 'STATUS') {
-      if (lcdState.currentMenu === 'ADVANCED_SETTINGS') {
-        advancedSettings.resetPassword();
+    handleButtonPress('esc', () => {
+      if (lcdState.currentMenu === 'MAIN') {
+        setLcdState(prev => ({
+          ...prev,
+          currentMenu: previousMenu,
+          autoScroll: true
+        }));
+      } else if (lcdState.currentMenu !== 'START' && lcdState.currentMenu !== 'STATUS') {
+        if (lcdState.currentMenu === 'ADVANCED_SETTINGS') {
+          advancedSettings.resetPassword();
+        }
+        setLcdState(prev => ({
+          ...prev,
+          currentMenu: 'MAIN'
+        }));
       }
-      setLcdState(prev => ({
-        ...prev,
-        currentMenu: 'MAIN'
-      }));
-    }
+    });
   };
 
   const getDisplayContent = () => {
@@ -229,13 +230,7 @@ export default function LCDDisplay() {
         return {
           title: 'Advanced Settings',
           value: advancedSettings.getValue(),
-          subtitle: advancedSettings.state.isPasswordEntered ? 'Press UP/DOWN to navigate' : 'Enter Password: 0010'
-        };
-      case 'EXPORT_LIMIT':
-        return {
-          title: 'Export Limit',
-          value: `${advancedSettings.state.exportLimit.toFixed(1)}KW`,
-          subtitle: 'Press UP/DOWN to adjust'
+          subtitle: 'Press UP/DOWN to navigate'
         };
       default:
         return {
@@ -250,16 +245,12 @@ export default function LCDDisplay() {
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center p-8">
-      {/* Solis Logo */}
       <div className="flex items-center gap-2 mb-1">
         <img alt='logo' src={String(logo)} />
       </div>
 
-      {/* Inverter Body */}
       <div className="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-2xl">
-        {/* LCD Panel Area */}
         <div className="bg-gray-800 rounded-lg p-6 mb-8">
-          {/* Status LEDs */}
           <div className="flex justify-between mb-6 px-4">
             <div className="flex flex-col items-center gap-2">
               <div className={`w-3 h-3 rounded-full ${lcdState.powerLED ? 'bg-red-500' : 'bg-gray-600'}`}></div>
@@ -275,7 +266,6 @@ export default function LCDDisplay() {
             </div>
           </div>
 
-          {/* LCD Screen */}
           <div className="bg-[#a8d1a0] border-4 border-gray-700 p-6 h-48 rounded-sm font-mono text-black">
             <div className="flex flex-col h-full">
               <div className="text-2xl mb-2">{display.title}</div>
@@ -285,35 +275,49 @@ export default function LCDDisplay() {
           </div>
         </div>
 
-        {/* Control Buttons */}
         <div className="grid grid-cols-4 gap-8 px-4">
           <button
             onClick={handleEsc}
-            className="rounded-full w-16 h-16 bg-gray-200 hover:bg-gray-300 flex items-center justify-center text-sm font-medium transition-colors"
+            className={`rounded-full w-16 h-16 flex items-center justify-center text-sm font-medium transition-all duration-100 ${
+              activeButton === 'esc' 
+                ? 'bg-gray-400 transform scale-95' 
+                : 'bg-gray-200 hover:bg-gray-300'
+            }`}
           >
             ESC
           </button>
           <button
             onClick={handleUp}
-            className="rounded-full w-16 h-16 bg-gray-200 hover:bg-gray-300 flex items-center justify-center text-sm font-medium transition-colors"
+            className={`rounded-full w-16 h-16 flex items-center justify-center text-sm font-medium transition-all duration-100 ${
+              activeButton === 'up' 
+                ? 'bg-gray-400 transform scale-95' 
+                : 'bg-gray-200 hover:bg-gray-300'
+            }`}
           >
             UP
           </button>
           <button
             onClick={handleDown}
-            className="rounded-full w-16 h-16 bg-gray-200 hover:bg-gray-300 flex items-center justify-center text-sm font-medium transition-colors"
+            className={`rounded-full w-16 h-16 flex items-center justify-center text-sm font-medium transition-all duration-100 ${
+              activeButton === 'down' 
+                ? 'bg-gray-400 transform scale-95' 
+                : 'bg-gray-200 hover:bg-gray-300'
+            }`}
           >
             DOWN
           </button>
           <button
             onClick={handleEnter}
-            className="rounded-full w-16 h-16 bg-gray-200 hover:bg-gray-300 flex items-center justify-center text-sm font-medium transition-colors"
+            className={`rounded-full w-16 h-16 flex items-center justify-center text-sm font-medium transition-all duration-100 ${
+              activeButton === 'enter' 
+                ? 'bg-gray-400 transform scale-95' 
+                : 'bg-gray-200 hover:bg-gray-300'
+            }`}
           >
             ENTER
           </button>
         </div>
 
-        {/* 4G Series Label */}
         <div className="mt-8 text-right pr-4">
           <span className="text-orange-500 font-semibold">4G Series</span>
         </div>
