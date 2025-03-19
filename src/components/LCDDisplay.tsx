@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Sun } from 'lucide-react';
 import { useInformation } from '../hooks/useInformation';
 import { useSettings } from '../hooks/useSettings';
 import { useAdvancedInfo } from '../hooks/useAdvancedInfo';
@@ -7,10 +6,10 @@ import { useAdvancedSettings } from '../hooks/useAdvancedSettings';
 import logo from '../logo.png';
 type MenuType = 'START' | 'STATUS' | 'MAIN' | 'INFORMATION' | 'SETTINGS' | 'ADVANCED_INFO' | 'ADVANCED_SETTINGS' | 'EXPORT_LIMIT';
 const mainMenuOptions: MenuType[] = ['INFORMATION', 'SETTINGS', 'ADVANCED_INFO', 'ADVANCED_SETTINGS'];
-console.log("LCD Display Component Loaded");
 
 export default function LCDDisplay() {
   const [selectedMainOption, setSelectedMainOption] = useState<MenuType>('INFORMATION');
+  const [previousMenu, setPreviousMenu] = useState<MenuType>('MAIN');
   
   const [lcdState, setLcdState] = useState<{
     currentMenu: MenuType;
@@ -144,17 +143,20 @@ export default function LCDDisplay() {
 
   const handleEnter = () => {
     if (lcdState.currentMenu === 'START' || lcdState.currentMenu === 'STATUS') {
+      setPreviousMenu(lcdState.currentMenu);
       setLcdState(prev => ({
         ...prev,
         currentMenu: 'MAIN',
         autoScroll: false
       }));
     } else if (lcdState.currentMenu === 'MAIN') {
+      setPreviousMenu('MAIN');
       setLcdState(prev => ({
         ...prev,
         currentMenu: selectedMainOption
       }));
     } else if (lcdState.currentMenu === 'ADVANCED_SETTINGS' && advancedSettings.state.selectedItem === 'Soft Hard Lmt Set') {
+      setPreviousMenu('ADVANCED_SETTINGS');
       setLcdState(prev => ({
         ...prev,
         currentMenu: 'EXPORT_LIMIT'
@@ -168,17 +170,20 @@ export default function LCDDisplay() {
         ...prev,
         currentMenu: 'ADVANCED_SETTINGS'
       }));
-    } else if (lcdState.currentMenu !== 'START' && lcdState.currentMenu !== 'STATUS') {
+    } else if (lcdState.currentMenu === 'MAIN') {
       setLcdState(prev => ({
         ...prev,
-        currentMenu: 'START',
+        currentMenu: previousMenu,
         autoScroll: true
       }));
-      // Reset password state when exiting Advanced Settings
+    } else if (lcdState.currentMenu !== 'START' && lcdState.currentMenu !== 'STATUS') {
       if (lcdState.currentMenu === 'ADVANCED_SETTINGS') {
-        advancedSettings.state.isPasswordEntered = false;
-        advancedSettings.state.passwordStep = 0;
+        advancedSettings.resetPassword();
       }
+      setLcdState(prev => ({
+        ...prev,
+        currentMenu: 'MAIN'
+      }));
     }
   };
 
@@ -247,9 +252,7 @@ export default function LCDDisplay() {
     <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center p-8">
       {/* Solis Logo */}
       <div className="flex items-center gap-2 mb-1">
-        {/*<Sun className="w-8 h-8 text-orange-500" />
-        <span className="text-3xl font-semibold text-orange-500">solis</span>*/}
-        <img alt='logo'  src={String(logo)} />
+        <img alt='logo' src={String(logo)} />
       </div>
 
       {/* Inverter Body */}

@@ -4,7 +4,8 @@ export interface AdvancedSettingsState {
   selectedItem: string;
   items: string[];
   exportLimit: number;
-  passwordStep: number;
+  passwordDigits: number[];
+  currentDigitIndex: number;
   isPasswordEntered: boolean;
   gridMode: 'ON' | 'OFF';
   modeSelect: string;
@@ -17,7 +18,8 @@ export function useAdvancedSettings() {
     selectedItem: 'Enter Password',
     items: ['Enter Password', 'Grid Mode', 'Mode Select', 'Export Power Set', 'Soft Hard Lmt Set'],
     exportLimit: 2.5,
-    passwordStep: 0,
+    passwordDigits: [0, 0, 0, 0],
+    currentDigitIndex: 0,
     isPasswordEntered: false,
     gridMode: 'ON',
     modeSelect: 'Standard',
@@ -27,20 +29,33 @@ export function useAdvancedSettings() {
 
   const handleUp = () => {
     if (!state.isPasswordEntered) {
-      // Password entry (0010)
-      setState(prev => ({
-        ...prev,
-        passwordStep: Math.min(3, prev.passwordStep + 1)
-      }));
-
-      // Check if password is correct (UP once after two DOWNs)
-      if (state.passwordStep === 2) {
-        setState(prev => ({
+      setState(prev => {
+        const newDigits = [...prev.passwordDigits];
+        newDigits[prev.currentDigitIndex] = 1;
+        
+        // Move to next digit automatically
+        const newIndex = prev.currentDigitIndex + 1;
+        
+        // Check if password is correct (0010)
+        if (newIndex === 4 && 
+            newDigits[0] === 0 && 
+            newDigits[1] === 0 && 
+            newDigits[2] === 1 && 
+            newDigits[3] === 0) {
+          return {
+            ...prev,
+            passwordDigits: newDigits,
+            isPasswordEntered: true,
+            selectedItem: 'Grid Mode'
+          };
+        }
+        
+        return {
           ...prev,
-          isPasswordEntered: true,
-          selectedItem: 'Grid Mode'
-        }));
-      }
+          passwordDigits: newDigits,
+          currentDigitIndex: Math.min(3, newIndex)
+        };
+      });
       return;
     }
 
@@ -77,11 +92,19 @@ export function useAdvancedSettings() {
 
   const handleDown = () => {
     if (!state.isPasswordEntered) {
-      // Password entry (0010)
-      setState(prev => ({
-        ...prev,
-        passwordStep: Math.max(0, prev.passwordStep - 1)
-      }));
+      setState(prev => {
+        const newDigits = [...prev.passwordDigits];
+        newDigits[prev.currentDigitIndex] = 0;
+        
+        // Move to next digit automatically
+        const newIndex = prev.currentDigitIndex + 1;
+        
+        return {
+          ...prev,
+          passwordDigits: newDigits,
+          currentDigitIndex: Math.min(3, newIndex)
+        };
+      });
       return;
     }
 
@@ -125,7 +148,7 @@ export function useAdvancedSettings() {
 
   const getValue = () => {
     if (!state.isPasswordEntered) {
-      return `Password: ${state.passwordStep === 2 ? '001' : '0'.repeat(state.passwordStep)}`;
+      return `Password: ${state.passwordDigits.join('')}`;
     }
 
     switch (state.selectedItem) {
@@ -142,11 +165,22 @@ export function useAdvancedSettings() {
     }
   };
 
+  const resetPassword = () => {
+    setState(prev => ({
+      ...prev,
+      passwordDigits: [0, 0, 0, 0],
+      currentDigitIndex: 0,
+      isPasswordEntered: false,
+      selectedItem: 'Enter Password'
+    }));
+  };
+
   return {
     state,
     handleUp,
     handleDown,
     adjustExportLimit,
-    getValue
+    getValue,
+    resetPassword
   };
 }
