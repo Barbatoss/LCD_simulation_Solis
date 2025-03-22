@@ -176,10 +176,9 @@ export default function LCDDisplay() {
           currentMenu: previousMenu,
           autoScroll: true
         }));
+      } else if (lcdState.currentMenu === 'ADVANCED_SETTINGS') {
+        advancedSettings.handleEsc();
       } else if (lcdState.currentMenu !== 'START' && lcdState.currentMenu !== 'STATUS') {
-        if (lcdState.currentMenu === 'ADVANCED_SETTINGS') {
-          advancedSettings.resetPassword();
-        }
         setLcdState(prev => ({
           ...prev,
           currentMenu: 'MAIN'
@@ -230,7 +229,7 @@ export default function LCDDisplay() {
         return {
           title: 'Advanced Settings',
           value: advancedSettings.getValue(),
-          subtitle: 'Press UP/DOWN to navigate'
+          subtitle: advancedSettings.state.isPasswordEntered ? 'Press UP/DOWN to navigate' : 'Enter Password'
         };
       default:
         return {
