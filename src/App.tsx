@@ -9,7 +9,7 @@ function App() {
         <LCDDisplay />
       </div>
       <div className="bg-gray-800 text-white py-2 px-4 flex items-center justify-center gap-2 text-sm">
-        <span>Made by Barbatoss</span>
+        <span>Made by Barbatoss & Saumya52</span>
         <a 
           href="https://github.com/Barbatoss" 
           target="_blank" 

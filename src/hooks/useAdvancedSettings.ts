@@ -11,19 +11,16 @@ export interface AdvancedSettingsState {
   modeSelect: 'Meter in Grid' | 'Meter in Load';
   exportPowerSet: number;
   softBackflowPower: number;
-  currentMenu: 'MAIN' | 'REGION' | 'STANDARD' | 'GRID' | 'EPM' | 'MODE_SELECT' | 'METER_SELECT' | 'METER_OPTIONS' | 'EXPORT_LIMIT';
-  previousMenu: 'MAIN' | 'REGION' | 'STANDARD' | 'GRID' | 'EPM' | 'MODE_SELECT' | 'METER_SELECT' | 'METER_OPTIONS' | 'EXPORT_LIMIT';
+  currentMenu: 'MAIN' | 'STANDARD' | 'GRID' | 'EPM' | 'MODE_SELECT' | 'METER_SELECT' | 'METER_OPTIONS' | 'EXPORT_LIMIT';
+  previousMenu: 'MAIN' | 'STANDARD' | 'GRID' | 'EPM' | 'MODE_SELECT' | 'METER_SELECT' | 'METER_OPTIONS' | 'EXPORT_LIMIT';
   meterType: '1phase' | '3phase';
   selectedMeter: string;
   meterOptions: {
     '1phase': string[];
     '3phase': string[];
   };
-  standardOptions: {
-    [key: string]: string[];
-  };
-  selectedRegion: 'Australia' | 'NewZealand';
   selectedStandard: string;
+  gridStandards: string[];
 }
 
 export function useAdvancedSettings() {
@@ -46,26 +43,27 @@ export function useAdvancedSettings() {
       '1phase': ['ACR10R16DTE', 'SDM120CTM'],
       '3phase': ['ACR10R-D16TE4', 'DTSD1352', 'SDM630MCT']
     },
-    standardOptions: {
-      'Australia': [
-        'AS4777-02',
-        'AS4777-15',
-        'AUS-Q-0.9',
-        'AUS-Q-0.8',
-        'AS4777_SA',
-        'AS4777_NA',
-        'AS4777-WA',
-        'AS4777-NW'
-      ],
-      'NewZealand': [
-        'ASNZ4777-A',
-        'ASNZ4777-B',
-        'ASNZ4777-C',
-        'ASNZ4777-N'
-      ]
-    },
-    selectedRegion: 'Australia',
-    selectedStandard: 'AS4777-02'
+    selectedStandard: 'AS4777-02',
+    gridStandards: [
+      'AS4777-02',
+      'AS4777-15',
+      'AUS-Q-0.9',
+      'AUS-Q-0.8',
+      'AS4777_SA',
+      'AS4777_NA',
+      'AS4777-WA',
+      'AS4777-NW',
+      'AS4777-QLD',
+      'AS4777-NSW',
+      'AS4777-VIC',
+      'AS4777-TAS',
+      'AS4777-ACT',
+      'AS4777-NT',
+      'ASNZ4777-A',
+      'ASNZ4777-B',
+      'ASNZ4777-C',
+      'ASNZ4777-N'
+    ]
   });
 
   const handleEnterPassword = (digits: number[]) => {
@@ -107,22 +105,13 @@ export function useAdvancedSettings() {
           };
         });
         break;
-      case 'REGION':
-        setState(prev => ({
-          ...prev,
-          selectedRegion: prev.selectedRegion === 'Australia' ? 'NewZealand' : 'Australia',
-          selectedStandard: prev.selectedRegion === 'Australia' ? 
-            prev.standardOptions['NewZealand'][0] : prev.standardOptions['Australia'][0]
-        }));
-        break;
       case 'STANDARD':
         setState(prev => {
-          const standards = prev.standardOptions[prev.selectedRegion];
-          const currentIndex = standards.indexOf(prev.selectedStandard);
-          const nextIndex = (currentIndex - 1 + standards.length) % standards.length;
+          const currentIndex = prev.gridStandards.indexOf(prev.selectedStandard);
+          const nextIndex = (currentIndex - 1 + prev.gridStandards.length) % prev.gridStandards.length;
           return {
             ...prev,
-            selectedStandard: standards[nextIndex]
+            selectedStandard: prev.gridStandards[nextIndex]
           };
         });
         break;
@@ -198,22 +187,13 @@ export function useAdvancedSettings() {
           };
         });
         break;
-      case 'REGION':
-        setState(prev => ({
-          ...prev,
-          selectedRegion: prev.selectedRegion === 'Australia' ? 'NewZealand' : 'Australia',
-          selectedStandard: prev.selectedRegion === 'Australia' ? 
-            prev.standardOptions['NewZealand'][0] : prev.standardOptions['Australia'][0]
-        }));
-        break;
       case 'STANDARD':
         setState(prev => {
-          const standards = prev.standardOptions[prev.selectedRegion];
-          const currentIndex = standards.indexOf(prev.selectedStandard);
-          const nextIndex = (currentIndex + 1) % standards.length;
+          const currentIndex = prev.gridStandards.indexOf(prev.selectedStandard);
+          const nextIndex = (currentIndex + 1) % prev.gridStandards.length;
           return {
             ...prev,
-            selectedStandard: standards[nextIndex]
+            selectedStandard: prev.gridStandards[nextIndex]
           };
         });
         break;
@@ -282,7 +262,7 @@ export function useAdvancedSettings() {
           if (prev.selectedItem === 'Select Standard') {
             return {
               ...prev,
-              currentMenu: 'REGION',
+              currentMenu: 'STANDARD',
               previousMenu: 'MAIN'
             };
           } else if (prev.selectedItem === 'Grid ON/OFF') {
@@ -300,12 +280,6 @@ export function useAdvancedSettings() {
             };
           }
           break;
-        case 'REGION':
-          return {
-            ...prev,
-            currentMenu: 'STANDARD',
-            previousMenu: 'REGION'
-          };
         case 'STANDARD':
           return {
             ...prev,
@@ -372,16 +346,7 @@ export function useAdvancedSettings() {
   const handleEsc = () => {
     setState(prev => {
       switch (prev.currentMenu) {
-        case 'REGION':
-          return {
-            ...prev,
-            currentMenu: 'MAIN'
-          };
         case 'STANDARD':
-          return {
-            ...prev,
-            currentMenu: 'REGION'
-          };
         case 'GRID':
         case 'EPM':
           return {
@@ -430,8 +395,6 @@ export function useAdvancedSettings() {
     switch (state.currentMenu) {
       case 'MAIN':
         return state.selectedItem;
-      case 'REGION':
-        return `Region: ${state.selectedRegion}`;
       case 'STANDARD':
         return state.selectedStandard;
       case 'GRID':
