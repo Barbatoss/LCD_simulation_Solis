@@ -88,7 +88,7 @@ export default function LCDDisplay() {
     if (advancedSettings.state.exportLimit > 1) {
       setLcdState(prev => ({
         ...prev,
-        statusMessage: 'LYMBYEPM'
+        statusMessage: 'Generating'
       }));
     }
   }, [advancedSettings.state.exportLimit]);
