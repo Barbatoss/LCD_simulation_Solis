@@ -8,11 +8,12 @@ export interface AdvancedSettingsState {
   currentDigitIndex: number;
   isPasswordEntered: boolean;
   gridMode: 'ON' | 'OFF';
+  failsafeMode: 'ON' | 'OFF';
   modeSelect: 'Meter in Grid' | 'Meter in Load';
   exportPowerSet: number;
   softBackflowPower: number;
-  currentMenu: 'MAIN' | 'STANDARD' | 'GRID' | 'EPM' | 'MODE_SELECT' | 'METER_SELECT' | 'METER_OPTIONS' | 'EXPORT_LIMIT';
-  previousMenu: 'MAIN' | 'STANDARD' | 'GRID' | 'EPM' | 'MODE_SELECT' | 'METER_SELECT' | 'METER_OPTIONS' | 'EXPORT_LIMIT';
+  currentMenu: 'MAIN' | 'STANDARD' | 'GRID' | 'EPM' | 'MODE_SELECT' | 'METER_SELECT' | 'METER_OPTIONS' | 'EXPORT_LIMIT' | 'FAILSAFE';
+  previousMenu: 'MAIN' | 'STANDARD' | 'GRID' | 'EPM' | 'MODE_SELECT' | 'METER_SELECT' | 'METER_OPTIONS' | 'EXPORT_LIMIT' | 'FAILSAFE';
   meterType: '1phase' | '3phase';
   selectedMeter: string;
   meterOptions: {
@@ -32,6 +33,7 @@ export function useAdvancedSettings() {
     currentDigitIndex: 0,
     isPasswordEntered: false,
     gridMode: 'ON',
+    failsafeMode: 'ON',
     modeSelect: 'Meter in Grid',
     exportPowerSet: 0,
     softBackflowPower: 0,
@@ -53,12 +55,6 @@ export function useAdvancedSettings() {
       'AS4777_NA',
       'AS4777-WA',
       'AS4777-NW',
-      'AS4777-QLD',
-      'AS4777-NSW',
-      'AS4777-VIC',
-      'AS4777-TAS',
-      'AS4777-ACT',
-      'AS4777-NT',
       'ASNZ4777-A',
       'ASNZ4777-B',
       'ASNZ4777-C',
@@ -125,7 +121,14 @@ export function useAdvancedSettings() {
         setState(prev => ({
           ...prev,
           selectedItem: prev.selectedItem === 'Mode Select' ? 'Meter Select' : 
-                       prev.selectedItem === 'Meter Select' ? 'Soft Hard Lmt Set' : 'Mode Select'
+                       prev.selectedItem === 'Meter Select' ? 'Failsafe' :
+                       prev.selectedItem === 'Failsafe' ? 'Soft Hard Lmt Set' : 'Mode Select'
+        }));
+        break;
+      case 'FAILSAFE':
+        setState(prev => ({
+          ...prev,
+          failsafeMode: prev.failsafeMode === 'ON' ? 'OFF' : 'ON'
         }));
         break;
       case 'MODE_SELECT':
@@ -207,7 +210,14 @@ export function useAdvancedSettings() {
         setState(prev => ({
           ...prev,
           selectedItem: prev.selectedItem === 'Mode Select' ? 'Meter Select' : 
-                       prev.selectedItem === 'Meter Select' ? 'Soft Hard Lmt Set' : 'Mode Select'
+                       prev.selectedItem === 'Meter Select' ? 'Failsafe' :
+                       prev.selectedItem === 'Failsafe' ? 'Soft Hard Lmt Set' : 'Mode Select'
+        }));
+        break;
+      case 'FAILSAFE':
+        setState(prev => ({
+          ...prev,
+          failsafeMode: prev.failsafeMode === 'ON' ? 'OFF' : 'ON'
         }));
         break;
       case 'MODE_SELECT':
@@ -312,6 +322,12 @@ export function useAdvancedSettings() {
               previousMenu: 'EPM',
               selectedMeter: prev.meterOptions[prev.meterType][0]
             };
+          } else if (prev.selectedItem === 'Failsafe') {
+            return {
+              ...prev,
+              currentMenu: 'FAILSAFE',
+              previousMenu: 'EPM'
+            };
           }
           break;
         case 'MODE_SELECT':
@@ -336,7 +352,14 @@ export function useAdvancedSettings() {
         case 'EXPORT_LIMIT':
           return {
             ...prev,
-            currentMenu: 'EPM'
+            currentMenu: 'EPM',
+            selectedItem: 'Soft Hard Lmt Set'
+          };
+        case 'FAILSAFE':
+          return {
+            ...prev,
+            currentMenu: 'EPM',
+            selectedItem: 'Failsafe'
           };
       }
       return prev;
@@ -345,6 +368,16 @@ export function useAdvancedSettings() {
 
   const handleEsc = () => {
     setState(prev => {
+      if (!prev.isPasswordEntered) {
+        return {
+          ...prev,
+          passwordDigits: [0, 0, 0, 0],
+          currentDigitIndex: 0,
+          isPasswordEntered: false,
+          selectedItem: 'Enter Password'
+        };
+      }
+
       switch (prev.currentMenu) {
         case 'STANDARD':
         case 'GRID':
@@ -366,6 +399,7 @@ export function useAdvancedSettings() {
           };
         case 'METER_SELECT':
         case 'EXPORT_LIMIT':
+        case 'FAILSAFE':
           return {
             ...prev,
             currentMenu: 'EPM',
@@ -409,6 +443,8 @@ export function useAdvancedSettings() {
         return state.selectedMeter || state.meterOptions[state.meterType][0];
       case 'EXPORT_LIMIT':
         return `${state.exportLimit.toFixed(1)}KW`;
+      case 'FAILSAFE':
+        return `Failsafe: ${state.failsafeMode}`;
       default:
         return state.selectedItem;
     }

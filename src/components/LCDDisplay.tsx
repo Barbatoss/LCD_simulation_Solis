@@ -75,6 +75,24 @@ export default function LCDDisplay() {
     }
   }, [lcdState.currentMenu]);
 
+  // Update operation LED based on grid mode
+  useEffect(() => {
+    setLcdState(prev => ({
+      ...prev,
+      operationLED: advancedSettings.state.gridMode === 'ON'
+    }));
+  }, [advancedSettings.state.gridMode]);
+
+  // Update status message when export limit is set
+  useEffect(() => {
+    if (advancedSettings.state.exportLimit > 1) {
+      setLcdState(prev => ({
+        ...prev,
+        statusMessage: 'LYMBYEPM'
+      }));
+    }
+  }, [advancedSettings.state.exportLimit]);
+
   const handleButtonPress = (button: string, action: () => void) => {
     setActiveButton(button);
     action();
@@ -177,6 +195,12 @@ export default function LCDDisplay() {
           autoScroll: true
         }));
       } else if (lcdState.currentMenu === 'ADVANCED_SETTINGS') {
+        if (!advancedSettings.state.isPasswordEntered) {
+          setLcdState(prev => ({
+            ...prev,
+            currentMenu: 'STATUS'
+          }));
+        }
         advancedSettings.handleEsc();
       } else if (lcdState.currentMenu !== 'START' && lcdState.currentMenu !== 'STATUS') {
         setLcdState(prev => ({
